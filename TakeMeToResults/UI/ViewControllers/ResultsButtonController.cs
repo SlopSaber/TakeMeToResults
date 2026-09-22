@@ -34,7 +34,7 @@ namespace TakeMeToResults.UI
         private readonly Action ShowOther;
 
         [UIComponent("results-button")]
-        private readonly RectTransform resultsButtonTransform;
+        private RectTransform resultsButtonTransform { get; set; }
 
         public ResultsButtonController(HierarchyManager hierarchyManager, ResultsViewController resultsViewController, MainFlowCoordinator mainFlowCoordinator,
             PresentFlowCoordinatorPatch presentFlowCoordinatorPatch)
