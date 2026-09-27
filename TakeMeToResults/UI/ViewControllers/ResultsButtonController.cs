@@ -7,15 +7,12 @@ using System.ComponentModel;
 using System.Reflection;
 using TakeMeToResults.AffinityPatches;
 using UnityEngine;
-using UnityEngine.UI;
 using Zenject;
 
 namespace TakeMeToResults.UI
 {
     internal class ResultsButtonController : IInitializable, IDisposable, INotifyPropertyChanged
     {
-        private const float TitleUnderlineHeightScale = 1.6f;
-
         private readonly TitleViewController titleViewController;
         private readonly ResultsViewController resultsViewController;
         private readonly MainFlowCoordinator mainFlowCoordinator;
@@ -55,12 +52,6 @@ namespace TakeMeToResults.UI
         {
             BSMLParser.Instance.Parse(Utilities.GetResourceContent(Assembly.GetExecutingAssembly(), "TakeMeToResults.UI.Views.ResultsButton.bsml"), titleViewController.gameObject, this);
             resultsButtonTransform.gameObject.name = "TakeMeToResults";
-            var underline = resultsButtonTransform.Find("Underline");
-            if (underline != null)
-            {
-                var effect = underline.gameObject.AddComponent<ResultsTitleUnderlineHeightEffect>();
-                effect.HeightScale = TitleUnderlineHeightScale;
-            }
             resultsViewController.continueButtonPressedEvent += GetViewControllers;
             levelCollectionNavigationController.didActivateEvent += DidActivate;
             levelCollectionNavigationController.didChangeLevelDetailContentEvent += UpdateContent;
@@ -142,25 +133,5 @@ namespace TakeMeToResults.UI
 
         [UIValue("button-active")]
         private bool ButtonActive => levelCollectionNavigationController != null && levelCollectionNavigationController.isActiveAndEnabled && resultsViewController._levelCompletionResults != null;
-    }
-
-    internal sealed class ResultsTitleUnderlineHeightEffect : BaseMeshEffect
-    {
-        public float HeightScale { get; set; } = 1f;
-
-        public override void ModifyMesh(VertexHelper vertices)
-        {
-            if (!IsActive()) return;
-            float bottom = graphic.rectTransform.rect.yMin;
-            UIVertex vertex = default;
-            for (int i = 0; i < vertices.currentVertCount; i++)
-            {
-                vertices.PopulateUIVertex(ref vertex, i);
-                var position = vertex.position;
-                position.y = bottom + (position.y - bottom) * HeightScale;
-                vertex.position = position;
-                vertices.SetUIVertex(vertex, i);
-            }
-        }
     }
 }
