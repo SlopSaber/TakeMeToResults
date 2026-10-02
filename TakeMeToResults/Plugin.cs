@@ -1,5 +1,7 @@
 ﻿using IPA;
 using SiraUtil.Zenject;
+using BeatSaberMarkupLanguage;
+using System.Threading.Tasks;
 using TakeMeToResults.AffinityPatches;
 using TakeMeToResults.UI;
 using IPALogger = IPA.Logging.Logger;
@@ -11,6 +13,7 @@ namespace TakeMeToResults
     {
         internal static Plugin Instance { get; private set; }
         internal static IPALogger Log { get; private set; }
+        internal static Task<string> ResultsButtonMarkupTask { get; private set; }
 
         [Init]
         /// <summary>
@@ -22,11 +25,17 @@ namespace TakeMeToResults
         {
             Instance = this;
             Plugin.Log = logger;
+            ResultsButtonMarkupTask ??= Task.Run(ReadResultsButtonMarkup);
             zenjector.Install(Location.Menu, Container =>
             {
                 Container.BindInterfacesTo<ResultsButtonController>().AsSingle();
                 Container.BindInterfacesAndSelfTo<PresentFlowCoordinatorPatch>().AsSingle();
             });
+        }
+
+        private static string ReadResultsButtonMarkup()
+        {
+            return Utilities.GetResourceContent(typeof(Plugin).Assembly, "TakeMeToResults.UI.Views.ResultsButton.bsml");
         }
 
         #region BSIPA Config

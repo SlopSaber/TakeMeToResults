@@ -2,9 +2,11 @@
 using BeatSaberMarkupLanguage.Attributes;
 using HMUI;
 using IPA.Utilities;
+using IPA.Utilities.Async;
 using System;
 using System.ComponentModel;
-using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using TakeMeToResults.AffinityPatches;
 using UnityEngine;
 using Zenject;
@@ -32,6 +34,7 @@ namespace TakeMeToResults.UI
 
         public event PropertyChangedEventHandler PropertyChanged;
         private readonly Action ShowOther;
+        private bool disposed;
 
         [UIComponent("results-button")]
         private RectTransform resultsButtonTransform { get; set; }
@@ -50,16 +53,44 @@ namespace TakeMeToResults.UI
 
         public void Initialize()
         {
-            BSMLParser.Instance.Parse(Utilities.GetResourceContent(Assembly.GetExecutingAssembly(), "TakeMeToResults.UI.Views.ResultsButton.bsml"), titleViewController.gameObject, this);
-            resultsButtonTransform.gameObject.name = "TakeMeToResults";
+            if (disposed) return;
             resultsViewController.continueButtonPressedEvent += GetViewControllers;
             levelCollectionNavigationController.didActivateEvent += DidActivate;
             levelCollectionNavigationController.didChangeLevelDetailContentEvent += UpdateContent;
             SignalOnUIButtonClick._buttonClickedSignal.Subscribe(OnBackButtonPressed);
+
+            Task<string> markup = Plugin.ResultsButtonMarkupTask;
+            if (markup.IsCompleted)
+            {
+                CreateResultsButton(markup);
+            }
+            else
+            {
+                _ = markup.ContinueWith(CreateResultsButton, CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously, UnityMainThreadTaskScheduler.Default);
+            }
+        }
+
+        private void CreateResultsButton(Task<string> markup)
+        {
+            if (disposed || titleViewController == null || resultsViewController == null || levelCollectionNavigationController == null)
+                return;
+
+            try
+            {
+                BSMLParser.Instance.Parse(markup.GetAwaiter().GetResult(), titleViewController.gameObject, this);
+                resultsButtonTransform.gameObject.name = "TakeMeToResults";
+            }
+            catch (Exception exception)
+            {
+                Plugin.Log.Error($"Unable to initialize results button: {exception}");
+            }
         }
 
         public void Dispose()
         {
+            if (disposed) return;
+            disposed = true;
             resultsViewController.continueButtonPressedEvent -= GetViewControllers;
             levelCollectionNavigationController.didActivateEvent -= DidActivate;
             levelCollectionNavigationController.didChangeLevelDetailContentEvent -= UpdateContent;
